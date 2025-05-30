@@ -156,5 +156,3 @@ export MY_CUSTOM_VAR=something
 - **Installation**: Requires `python-dotenv` (`pip install python-dotenv`).
 - **Security**: Restrict permissions on configuration files (e.g., `chmod 600 ~/.zshrc`).
 - **Testing**: Verify explicit overrides and fallback behavior in clean environments.
-
-If you prefer a different name or need additional features (e.g., support for `.zshenv` or path validation), let us know!
