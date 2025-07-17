@@ -12,3 +12,5 @@ pip install -e .
 
 # Publish to PyPI
 python3 -m twine upload dist/*
+# Publish using token
+twine upload -u __token__ -p $PYPI dist/* 

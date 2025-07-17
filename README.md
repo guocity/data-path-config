@@ -15,6 +15,7 @@ A Python utility for managing data and log directory paths in projects and subpr
 
 ```bash
 pip install data-path-config
+pip install --upgrade data-path-config
 ```
 
 ## Usage

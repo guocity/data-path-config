@@ -20,7 +20,9 @@ class DataPathConfig:
         default_data_dir: str = "~/data",
         default_log_dir: str = "~/logs",
         subproject: Optional[str] = None,
-        create_dirs: bool = True
+        create_dirs: bool = True,
+        log_level: int = logging.INFO,
+        propagate: bool = False  # <-- add this line
     ):
         """
         Initialize PathConfig with project details and path settings.
@@ -46,18 +48,31 @@ class DataPathConfig:
         self.default_log_dir = default_log_dir
         self.create_dirs = create_dirs
 
-        # Set up logging
-        self.logger = logging.getLogger(__name__)
-        if not self.logger.handlers:
-            self.logger.setLevel(logging.INFO)
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
+        # Set up project-specific logger first
+        self.logger = self.get_logger(level=log_level, propagate=propagate)
 
         # Load configuration files if data_dir or log_dir not provided
         if self.data_dir_arg is None or self.log_dir_arg is None:
             self._load_env()
+
+    def get_logger(self, level: int = logging.INFO, propagate: bool = False) -> logging.Logger:
+        """
+        Returns a project-specific logger writing to the project log directory.
+        Allows control of propagation to the root logger.
+        """
+        logger_name = f"{self.project_name}_logger"
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(level)
+        logger.propagate = propagate
+        logger.handlers.clear()
+
+        log_path = self.project_log_dir()
+        logfile = str(log_path / f"{self.project_name}.log")
+        file_handler = logging.FileHandler(logfile, encoding='utf-8')
+        file_handler.setLevel(level)
+        file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+        logger.addHandler(file_handler)
+        return logger
 
     def _load_env(self) -> None:
         """Load environment variables from .env if it exists."""
@@ -65,11 +80,14 @@ class DataPathConfig:
         if env_path.exists():
             try:
                 load_dotenv(dotenv_path=env_path)
-                self.logger.info(f"Loaded .env file from {env_path}")
+                if hasattr(self, 'logger'):
+                    self.logger.info(f"Loaded .env file from {env_path}")
             except Exception as e:
-                self.logger.warning(f"Failed to load .env file: {e}")
+                if hasattr(self, 'logger'):
+                    self.logger.warning(f"Failed to load .env file: {e}")
         else:
-            self.logger.debug("No .env file found in current directory")
+            if hasattr(self, 'logger'):
+                self.logger.debug("No .env file found in current directory")
 
     def _resolve_path(self, path_source: Optional[str], env_var: str, default_path: str, base_only: bool = False, include_subproject: bool = True) -> pathlib.Path:
         """
