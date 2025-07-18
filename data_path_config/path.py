@@ -3,6 +3,7 @@ import pathlib
 import logging
 from typing import Optional
 from dotenv import load_dotenv
+from datetime import date
 
 class DataPathConfig:
     """
@@ -10,6 +11,14 @@ class DataPathConfig:
     Reads from constructor arguments, .env, .zshrc, .profile, or environment variables,
     with fallback defaults. Ensures compatibility with cron and virtual environments.
     """
+    # Static logger for early logging before instance logger is set
+    _static_logger = logging.getLogger("DataPathConfig_static")
+    _static_logger.setLevel(logging.INFO)
+    if not _static_logger.handlers:
+        _static_handler = logging.StreamHandler()
+        _static_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+        _static_logger.addHandler(_static_handler)
+
     def __init__(
         self,
         project_name: str,
@@ -109,6 +118,7 @@ class DataPathConfig:
             RuntimeError: For other path resolution errors.
         """
         path_str = path_source if path_source is not None else os.getenv(env_var, default_path)
+        logger = getattr(self, "logger", DataPathConfig._static_logger)
         try:
             # Expand ~ and environment variables in the path
             path_str = os.path.expanduser(os.path.expandvars(path_str))
@@ -117,10 +127,10 @@ class DataPathConfig:
             # For base_only, check existence and return without project/subproject
             if base_only:
                 if not path.exists():
-                    self.logger.error(f"Base path {path} does not exist")
+                    logger.error(f"Base path {path} does not exist")
                     raise FileNotFoundError(f"Base path {path} does not exist")
                 if not path.is_dir():
-                    self.logger.error(f"Base path {path} is not a directory")
+                    logger.error(f"Base path {path} is not a directory")
                     raise NotADirectoryError(f"Base path {path} is not a directory")
                 return path.resolve()
 
@@ -137,19 +147,19 @@ class DataPathConfig:
             if self.create_dirs and not path.exists():
                 try:
                     path.mkdir(parents=True, exist_ok=True)
-                    self.logger.info(f"Created directory: {path}")
+                    logger.info(f"Created directory: {path}")
                 except Exception as e:
-                    self.logger.error(f"Failed to create directory {path}: {e}")
+                    logger.error(f"Failed to create directory {path}: {e}")
                     raise RuntimeError(f"Cannot create directory {path}: {e}")
 
             # Verify path is a directory
             if not path.is_dir():
-                self.logger.error(f"Path {path} is not a directory")
+                logger.error(f"Path {path} is not a directory")
                 raise NotADirectoryError(f"Path {path} is not a directory")
 
             return path
         except Exception as e:
-            self.logger.error(f"Error resolving path for {env_var or path_str}: {e}")
+            logger.error(f"Error resolving path for {env_var or path_str}: {e}")
             raise RuntimeError(f"Failed to resolve path for {env_var or path_str}: {e}")
 
     def data_dir(self) -> pathlib.Path:
@@ -237,3 +247,19 @@ class DataPathConfig:
             Optional[str]: Value of the environment variable or default.
         """
         return os.getenv(var_name, default)
+
+    def get_project_today_file_name(self, filetype: str = "json") -> pathlib.Path:
+        """
+        Generate a filename with today's date in the project directory.
+
+        Args:
+            filetype (str): File extension (default: "json").
+
+        Returns:
+            pathlib.Path: Full path to the date-stamped file in the project directory.
+        """
+        if self.subproject:
+            file_path = self.sub_project_dir() / f"{self.project_name}_{self.subproject}_{date.today()}.{filetype}"
+        else:
+            file_path = self.project_dir() / f"{self.project_name}_{date.today()}.{filetype}"
+        return file_path
