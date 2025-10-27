@@ -51,8 +51,8 @@ class DataPathConfig:
         self.default_log_dir = default_log_dir
         self.create_dirs = create_dirs
 
-        # Check if Python is running from a path containing 'airflow'
-        if "airflow" in sys.executable:
+        # Check if running in an Airflow environment by checking for AIRFLOW_HOME
+        if "AIRFLOW_HOME" in os.environ:
             airflow_data_dir = "/opt/airflow/data"
             airflow_log_dir = "/opt/airflow/logs"
             self.default_data_dir = airflow_data_dir
