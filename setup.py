@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="data-path-config",
-    version="0.3.2",
+    version="0.4.2",
     packages=find_packages(),
     install_requires=[
         "python-dotenv>=0.19.0"
