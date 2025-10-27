@@ -53,8 +53,14 @@ class DataPathConfig:
 
         # Check if Python is running from a path containing 'airflow'
         if "airflow" in sys.executable:
-            self.default_data_dir = "/opt/airflow/data"
-            self.default_log_dir = "/opt/airflow/logs"
+            airflow_data_dir = "/opt/airflow/data"
+            airflow_log_dir = "/opt/airflow/logs"
+            self.default_data_dir = airflow_data_dir
+            self.default_log_dir = airflow_log_dir
+            if self.data_dir_arg is None:
+                self.data_dir_arg = airflow_data_dir
+            if self.log_dir_arg is None:
+                self.log_dir_arg = airflow_log_dir
 
         # Set up project-specific logger first
         self.logger = self.get_logger(level=log_level, propagate=propagate)
